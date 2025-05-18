@@ -6,7 +6,7 @@ on:
     paths-ignore: ['**.md']
 jobs:
   rebase:
-    if: github.actor == 'codex-bot'
+    if: github.actor == 'codex/index-html'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
