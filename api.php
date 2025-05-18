@@ -9,73 +9,65 @@ if (!file_exists($dbFile)) {
 
 $database = json_decode(file_get_contents($dbFile), true);
 
-if (!is_array($database)) {
-    $database = [];
-}
-
-
 $action = $_GET['action'] ?? null;
 
 switch ($action) {
     case 'get_clients':
-        if (!isset($database['clients'])) {
-            $database['clients'] = [];
-        }
+
+        $database['clients'] = $database['clients'] ?? [];
         echo json_encode($database['clients'], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'add_client':
-        $postData = json_decode(file_get_contents('php://input'), true);
-        $newClient = [
+
+        $post = json_decode(file_get_contents('php://input'), true);
+        $new = [
             'id'      => time(),
-            'name'    => $postData['name'] ?? 'Безымянный',
-            'company' => $postData['company'] ?? '',
-            'phone'   => $postData['phone'] ?? ''
+            'name'    => $post['name'] ?? 'Безымянный',
+            'company' => $post['company'] ?? '',
+            'phone'   => $post['phone'] ?? ''
         ];
-        $database['clients'][] = $newClient;
+        $database['clients'][] = $new;
         file_put_contents($dbFile, json_encode($database, JSON_UNESCAPED_UNICODE));
-        echo json_encode(['status' => 'success', 'client' => $newClient], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['status' => 'success', 'client' => $new], JSON_UNESCAPED_UNICODE);
         break;
 
-
     case 'get_deals':
-        if (!isset($database['deals'])) {
-            $database['deals'] = [];
-        }
+        $database['deals'] = $database['deals'] ?? [];
         echo json_encode($database['deals'], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'add_deal':
-        $postData = json_decode(file_get_contents('php://input'), true);
-        $newDeal = [
-            'id'       => time(),
-            'title'    => $postData['title'] ?? 'Без названия',
-            'clientId' => $postData['clientId'] ?? '',
-            'amount'   => $postData['amount'] ?? ''
+        $post = json_decode(file_get_contents('php://input'), true);
+        $new = [
+            'id'     => time(),
+            'title'  => $post['title'] ?? 'Без названия',
+            'client' => $post['client'] ?? '',
+            'budget' => $post['budget'] ?? 0,
+            'date'   => $post['date'] ?? date('Y-m-d')
         ];
-        $database['deals'][] = $newDeal;
+        $database['deals'][] = $new;
         file_put_contents($dbFile, json_encode($database, JSON_UNESCAPED_UNICODE));
-        echo json_encode(['status' => 'success', 'deal' => $newDeal], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['status' => 'success', 'deal' => $new], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'get_tasks':
-        if (!isset($database['tasks'])) {
-            $database['tasks'] = [];
-        }
+        $database['tasks'] = $database['tasks'] ?? [];
         echo json_encode($database['tasks'], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'add_task':
-        $postData = json_decode(file_get_contents('php://input'), true);
-        $newTask = [
-            'id'          => time(),
-            'title'       => $postData['title'] ?? 'Без названия',
-            'description' => $postData['description'] ?? '',
-            'status'      => 'todo'
+        $post = json_decode(file_get_contents('php://input'), true);
+        $new = [
+            'id'    => time(),
+            'desc'  => $post['desc'] ?? '',
+            'deal'  => $post['deal'] ?? '',
+            'owner' => $post['owner'] ?? '',
+            'due'   => $post['due'] ?? date('Y-m-d')
         ];
-        $database['tasks'][] = $newTask;
+        $database['tasks'][] = $new;
         file_put_contents($dbFile, json_encode($database, JSON_UNESCAPED_UNICODE));
-        echo json_encode(['status' => 'success', 'task' => $newTask], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['status' => 'success', 'task' => $new], JSON_UNESCAPED_UNICODE);
         break;
 
     default:
