@@ -8,9 +8,11 @@ if (!file_exists($dbFile)) {
 }
 
 $database = json_decode(file_get_contents($dbFile), true);
+
 if (!is_array($database)) {
     $database = [];
 }
+
 
 $action = $_GET['action'] ?? null;
 
@@ -34,6 +36,7 @@ switch ($action) {
         file_put_contents($dbFile, json_encode($database, JSON_UNESCAPED_UNICODE));
         echo json_encode(['status' => 'success', 'client' => $newClient], JSON_UNESCAPED_UNICODE);
         break;
+
 
     case 'get_deals':
         if (!isset($database['deals'])) {
