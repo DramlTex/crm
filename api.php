@@ -8,15 +8,18 @@ if (!file_exists($dbFile)) {
 }
 
 $database = json_decode(file_get_contents($dbFile), true);
+
 $action = $_GET['action'] ?? null;
 
 switch ($action) {
     case 'get_clients':
+
         $database['clients'] = $database['clients'] ?? [];
         echo json_encode($database['clients'], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'add_client':
+
         $post = json_decode(file_get_contents('php://input'), true);
         $new = [
             'id'      => time(),
