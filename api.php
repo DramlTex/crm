@@ -11,8 +11,9 @@ if (!isset($database['clients']))   $database['clients']   = [];
 if (!isset($database['deals']))     $database['deals']     = [];
 if (!isset($database['tasks']))     $database['tasks']     = [];
 if (!isset($database['documents'])) $database['documents'] = [];
-if (!isset($database['settings']))  $database['settings']  = ['menu' => ['clients'=>true,'deals'=>true,'tasks'=>true,'documents'=>false]];
+if (!isset($database['settings']))  $database['settings']  = ['menu' => ['clients'=>true,'deals'=>true,'tasks'=>true,'documents'=>false,'knowledge'=>false]];
 if (!isset($database['stages']))    $database['stages']    = ['Новая','В работе','Закрыта'];
+if (!isset($database['articles']))  $database['articles']  = [];
 
 $action = $_GET['action'] ?? null;
 
@@ -70,6 +71,19 @@ switch ($action) {
             'content' => $data['content'] ?? ''
         ];
         $database['documents'][] = $new;
+        break;
+
+    case 'get_articles':
+        echo json_encode($database['articles'], JSON_UNESCAPED_UNICODE);
+        exit;
+    case 'add_article':
+        $data = json_decode(file_get_contents('php://input'), true);
+        $new = [
+            'id'      => time(),
+            'title'   => $data['title'] ?? 'Статья',
+            'content' => $data['content'] ?? ''
+        ];
+        $database['articles'][] = $new;
         break;
 
     case 'get_settings':

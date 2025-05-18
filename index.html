@@ -95,6 +95,7 @@
         <a href="#" id="nav-deals" onclick="navigateTo('deals')">Сделки</a>
         <a href="#" id="nav-tasks" onclick="navigateTo('tasks')">Задачи</a>
         <a href="#" id="nav-docs" onclick="navigateTo('documents')">Документы</a>
+        <a href="#" id="nav-knowledge" onclick="navigateTo('knowledge')">База знаний</a>
         <a href="#" id="nav-stages" onclick="navigateTo('stages')">Стадии</a>
         <a href="#" id="nav-settings" onclick="navigateTo('settings')">Настройки</a>
     </nav>
@@ -183,6 +184,24 @@
                     </div>
                 `;
                 loadDocs();
+            } else if (section === 'knowledge') {
+                content.innerHTML = `
+                    <div class="section">
+                        <h2>База знаний</h2>
+                        <button class="btn" onclick="loadArticles()">Обновить</button>
+                        <table>
+                            <thead><tr><th>ID</th><th>Название</th><th>Содержимое</th></tr></thead>
+                            <tbody id="knowledge-table"><tr><td colspan="3">Загрузка...</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="section">
+                        <h3>Добавить статью</h3>
+                        <div class="form-row"><label>Название<input id="kn-title"></label></div>
+                        <div class="form-row"><label>Содержимое<input id="kn-content"></label></div>
+                        <button class="btn" onclick="addArticle()">Сохранить</button>
+                    </div>
+                `;
+                loadArticles();
             } else if (section === 'stages') {
                 content.innerHTML = `
                     <div class="section">
@@ -205,6 +224,7 @@
                         <label><input type="checkbox" id="set-menu-deals"> Сделки</label><br>
                         <label><input type="checkbox" id="set-menu-tasks"> Задачи</label><br>
                         <label><input type="checkbox" id="set-menu-docs"> Документы</label><br>
+                        <label><input type="checkbox" id="set-menu-knowledge"> База знаний</label><br>
                         <button class="btn" onclick="saveSettings()">Сохранить</button>
                     </div>
                 `;
@@ -264,6 +284,17 @@
             request('add_document', 'POST', body).then(loadDocs);
         }
 
+        function loadArticles() {
+            request('get_articles').then(data => {
+                const tbody = document.getElementById('knowledge-table');
+                tbody.innerHTML = data.length ? data.map(d => `<tr><td>${d.id}</td><td>${d.title}</td><td>${d.content}</td></tr>`).join('') : '<tr><td colspan="3">Нет данных</td></tr>';
+            });
+        }
+        function addArticle() {
+            const body = { title: document.getElementById('kn-title').value, content: document.getElementById('kn-content').value };
+            request('add_article', 'POST', body).then(loadArticles);
+        }
+
         function loadStages() {
             request('get_stages').then(data => {
                 const ul = document.getElementById('stages-list');
@@ -275,7 +306,7 @@
             request('add_stage', 'POST', body).then(loadStages);
         }
 
-        let settings = { menu: { clients:true, deals:true, tasks:true, documents:false } };
+        let settings = { menu: { clients:true, deals:true, tasks:true, documents:false, knowledge:false } };
         function applySettings() {
             request('get_settings').then(s => {
                 Object.assign(settings.menu, s.menu || {});
@@ -283,6 +314,7 @@
                 document.getElementById('nav-deals').style.display = settings.menu.deals ? 'block' : 'none';
                 document.getElementById('nav-tasks').style.display = settings.menu.tasks ? 'block' : 'none';
                 document.getElementById('nav-docs').style.display = settings.menu.documents ? 'block' : 'none';
+                document.getElementById('nav-knowledge').style.display = settings.menu.knowledge ? 'block' : 'none';
             });
         }
         function fillSettings() {
@@ -290,6 +322,7 @@
             document.getElementById('set-menu-deals').checked = settings.menu.deals;
             document.getElementById('set-menu-tasks').checked = settings.menu.tasks;
             document.getElementById('set-menu-docs').checked = settings.menu.documents;
+            document.getElementById('set-menu-knowledge').checked = settings.menu.knowledge;
         }
         function saveSettings() {
             const data = {
@@ -297,7 +330,8 @@
                     clients: document.getElementById('set-menu-clients').checked,
                     deals: document.getElementById('set-menu-deals').checked,
                     tasks: document.getElementById('set-menu-tasks').checked,
-                    documents: document.getElementById('set-menu-docs').checked
+                    documents: document.getElementById('set-menu-docs').checked,
+                    knowledge: document.getElementById('set-menu-knowledge').checked
                 }
             };
             request('update_settings', 'POST', data).then(() => { settings = data; applySettings(); });

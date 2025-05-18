@@ -1,7 +1,7 @@
 
 # CRM Demo
 
-Минимальный пример CRM на HTML/JavaScript и PHP. Система хранит данные в `database.json` и поддерживает работу с клиентами, сделками и задачами.
+Минимальный пример CRM на HTML/JavaScript и PHP. Система хранит данные в `database.json` и поддерживает работу с клиентами, сделками, задачами и базой знаний.
 
 ## Запуск
 1. Установите PHP 7.4+.
@@ -12,7 +12,7 @@
 3. Откройте `http://localhost:8000/index.html` в браузере.
 
 ## Структура проекта
-- `index.html` – интерфейс CRM с разделами "Клиенты", "Сделки", "Задачи" и "Документы".
+- `index.html` – интерфейс CRM с разделами "Клиенты", "Сделки", "Задачи", "Документы" и "База знаний".
 - `api.php` – API для чтения и записи данных в `database.json`.
 - `database.json` – файл‑хранилище (создаётся автоматически).
 
@@ -22,6 +22,7 @@
 - `get_deals`, `add_deal`
 - `get_tasks`, `add_task`
 - `get_documents`, `add_document`
+- `get_articles`, `add_article`
 - `get_settings`, `update_settings`
 - `get_stages`, `add_stage`
 - `export_data`
