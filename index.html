@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>CRM Demo</title>
+    <style>
+        /* Базовые стили и цветовая схема */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            width: 100%;
+            background-color: #2b5797;
+            color: #fff;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        nav {
+            width: 200px;
+            background: #3f3f3f;
+            color: #fff;
+            padding: 1rem;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        #main-content {
+            flex: 1;
+            padding: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #0078d7;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #005a9e;
+        }
+
+        .form-row {
+            margin-bottom: 0.5rem;
+        }
+        .form-row label {
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+        .form-row input {
+            width: 100%;
+            padding: 0.4rem;
+        }
+        .section {
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>CRM Demo</h1>
+    </header>
+    <nav>
+        <a href="#" onclick="navigateTo('dashboard')">Главная</a>
+        <a href="#" onclick="navigateTo('clients')">Клиенты</a>
+        <a href="#" onclick="navigateTo('deals')">Сделки</a>
+        <a href="#" onclick="navigateTo('tasks')">Задачи</a>
+    </nav>
+    <div id="main-content">
+        <div id="content-area">
+            <h2>Добро пожаловать!</h2>
+            <p>Выберите раздел в меню слева.</p>
+        </div>
+    </div>
+
+    <script>
+        function navigateTo(section) {
+            const content = document.getElementById('content-area');
+            if (section === 'clients') {
+                content.innerHTML = `
+                    <div class="section">
+                        <h2>Клиенты</h2>
+                        <button class="btn" onclick="loadClients()">Обновить</button>
+                        <table>
+                            <thead><tr><th>ID</th><th>Имя</th><th>Компания</th><th>Телефон</th></tr></thead>
+                            <tbody id="clients-table"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="section">
+                        <h3>Добавить клиента</h3>
+                        <div class="form-row"><label>Имя<input id="c-name"></label></div>
+                        <div class="form-row"><label>Компания<input id="c-company"></label></div>
+                        <div class="form-row"><label>Телефон<input id="c-phone"></label></div>
+                        <button class="btn" onclick="addClient()">Сохранить</button>
+                    </div>
+                `;
+                loadClients();
+            } else if (section === 'deals') {
+                content.innerHTML = `
+                    <div class="section">
+                        <h2>Сделки</h2>
+                        <button class="btn" onclick="loadDeals()">Обновить</button>
+                        <table>
+                            <thead><tr><th>ID</th><th>Название</th><th>Клиент</th><th>Сумма</th></tr></thead>
+                            <tbody id="deals-table"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="section">
+                        <h3>Добавить сделку</h3>
+                        <div class="form-row"><label>Название<input id="d-title"></label></div>
+                        <div class="form-row"><label>ID клиента<input id="d-client"></label></div>
+                        <div class="form-row"><label>Сумма<input id="d-amount" type="number"></label></div>
+                        <button class="btn" onclick="addDeal()">Сохранить</button>
+                    </div>
+                `;
+                loadDeals();
+            } else if (section === 'tasks') {
+                content.innerHTML = `
+                    <div class="section">
+                        <h2>Задачи</h2>
+                        <button class="btn" onclick="loadTasks()">Обновить</button>
+                        <table>
+                            <thead><tr><th>ID</th><th>Название</th><th>Сделка</th><th>Срок</th></tr></thead>
+                            <tbody id="tasks-table"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="section">
+                        <h3>Добавить задачу</h3>
+                        <div class="form-row"><label>Название<input id="t-title"></label></div>
+                        <div class="form-row"><label>ID сделки<input id="t-deal"></label></div>
+                        <div class="form-row"><label>Срок<input id="t-date" type="date"></label></div>
+                        <button class="btn" onclick="addTask()">Сохранить</button>
+                    </div>
+                `;
+                loadTasks();
+            } else {
+                content.innerHTML = '<h2>Добро пожаловать!</h2><p>Выберите раздел в меню слева.</p>';
+            }
+        }
+
+        function request(action, method = 'GET', body = null) {
+            const options = { method };
+            if (body) options.body = JSON.stringify(body);
+            return fetch('api.php?action=' + action, options).then(r => r.json());
+        }
+
+        function loadClients() {
+            request('get_clients').then(data => {
+                const tbody = document.getElementById('clients-table');
+                tbody.innerHTML = data.length ? data.map(c => `<tr><td>${c.id}</td><td>${c.name}</td><td>${c.company}</td><td>${c.phone}</td></tr>`).join('') : '<tr><td colspan="4">Нет данных</td></tr>';
+            });
+        }
+        function addClient() {
+            const body = { name: document.getElementById('c-name').value, company: document.getElementById('c-company').value, phone: document.getElementById('c-phone').value };
+            request('add_client', 'POST', body).then(loadClients);
+        }
+
+        function loadDeals() {
+            request('get_deals').then(data => {
+                const tbody = document.getElementById('deals-table');
+                tbody.innerHTML = data.length ? data.map(d => `<tr><td>${d.id}</td><td>${d.title}</td><td>${d.client_id}</td><td>${d.amount}</td></tr>`).join('') : '<tr><td colspan="4">Нет данных</td></tr>';
+            });
+        }
+        function addDeal() {
+            const body = { title: document.getElementById('d-title').value, client_id: document.getElementById('d-client').value, amount: document.getElementById('d-amount').value };
+            request('add_deal', 'POST', body).then(loadDeals);
+        }
+
+        function loadTasks() {
+            request('get_tasks').then(data => {
+                const tbody = document.getElementById('tasks-table');
+                tbody.innerHTML = data.length ? data.map(t => `<tr><td>${t.id}</td><td>${t.title}</td><td>${t.deal_id}</td><td>${t.due_date}</td></tr>`).join('') : '<tr><td colspan="4">Нет данных</td></tr>';
+            });
+        }
+        function addTask() {
+            const body = { title: document.getElementById('t-title').value, deal_id: document.getElementById('t-deal').value, due_date: document.getElementById('t-date').value };
+            request('add_task', 'POST', body).then(loadTasks);
+        }
+    </script>
+</body>
+</html>
