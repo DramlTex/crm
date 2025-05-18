@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>CRM Demo</title>
+    <style>
+        :root {
+            --primary: #0078d7;
+            --bg: #f9f9f9;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg);
+        }
+        header {
+            background-color: var(--primary);
+            padding: 1rem;
+            color: #fff;
+            text-align: center;
+        }
+        nav {
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            min-height: 100vh;
+            float: left;
+        }
+        nav ul {
+            list-style: none;
+        }
+        nav li {
+            border-bottom: 1px solid #444;
+        }
+        nav a {
+            color: #fff;
+            display: block;
+            padding: 0.75rem;
+            text-decoration: none;
+        }
+        nav a:hover {
+            background-color: #444;
+        }
+        #main-content {
+            margin-left: 200px;
+            padding: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.5rem;
+            text-align: left;
+        }
+        form {
+            margin-bottom: 1rem;
+        }
+        form input, form textarea {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .btn {
+            background-color: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #005a9e;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>CRM Demo</h1>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="#" onclick="navigateTo('clients')">Клиенты</a></li>
+        <li><a href="#" onclick="navigateTo('deals')">Сделки</a></li>
+        <li><a href="#" onclick="navigateTo('tasks')">Задачи</a></li>
+    </ul>
+</nav>
+
+<div id="main-content">
+    <div id="content-area">
+        <h2>Добро пожаловать в CRM Demo!</h2>
+        <p>Выберите раздел в меню.</p>
+    </div>
+</div>
+
+<script>
+function navigateTo(section) {
+    const c = document.getElementById('content-area');
+    switch(section) {
+        case 'clients':
+            c.innerHTML = `
+                <h2>Клиенты</h2>
+                <form onsubmit="submitClient(event)">
+                    <input name="name" placeholder="Имя" required />
+                    <input name="company" placeholder="Компания" />
+                    <input name="phone" placeholder="Телефон" />
+                    <button class="btn" type="submit">Добавить</button>
+                </form>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Имя</th><th>Компания</th><th>Телефон</th></tr>
+                    </thead>
+                    <tbody id="clients-table"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+                </table>`;
+            fetchClients();
+            break;
+        case 'deals':
+            c.innerHTML = `
+                <h2>Сделки</h2>
+                <form onsubmit="submitDeal(event)">
+                    <input name="title" placeholder="Название" required />
+                    <input name="clientId" placeholder="ID клиента" />
+                    <input name="amount" placeholder="Сумма" />
+                    <button class="btn" type="submit">Добавить</button>
+                </form>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Название</th><th>Клиент</th><th>Сумма</th></tr>
+                    </thead>
+                    <tbody id="deals-table"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+                </table>`;
+            fetchDeals();
+            break;
+        case 'tasks':
+            c.innerHTML = `
+                <h2>Задачи</h2>
+                <form onsubmit="submitTask(event)">
+                    <input name="title" placeholder="Название" required />
+                    <textarea name="description" placeholder="Описание"></textarea>
+                    <button class="btn" type="submit">Добавить</button>
+                </form>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Название</th><th>Описание</th><th>Статус</th></tr>
+                    </thead>
+                    <tbody id="tasks-table"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+                </table>`;
+            fetchTasks();
+            break;
+        default:
+            c.innerHTML = '<h2>Добро пожаловать в CRM Demo!</h2><p>Выберите раздел в меню.</p>';
+    }
+}
+
+function fetchClients() {
+    fetch('api.php?action=get_clients')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('clients-table');
+            if (!tbody) return;
+            tbody.innerHTML = data.length ? data.map(cl => `<tr><td>${cl.id}</td><td>${cl.name}</td><td>${cl.company}</td><td>${cl.phone}</td></tr>`).join('') : '<tr><td colspan="4">Нет данных</td></tr>';
+        });
+}
+function submitClient(e) {
+    e.preventDefault();
+    const f = e.target;
+    const data = {name:f.name.value, company:f.company.value, phone:f.phone.value};
+    fetch('api.php?action=add_client', {method:'POST', body: JSON.stringify(data)})
+        .then(() => { f.reset(); fetchClients(); });
+}
+
+function fetchDeals() {
+    fetch('api.php?action=get_deals')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('deals-table');
+            if (!tbody) return;
+            tbody.innerHTML = data.length ? data.map(d => `<tr><td>${d.id}</td><td>${d.title}</td><td>${d.clientId}</td><td>${d.amount}</td></tr>`).join('') : '<tr><td colspan="4">Нет данных</td></tr>';
+        });
+}
+function submitDeal(e) {
+    e.preventDefault();
+    const f = e.target;
+    const data = {title:f.title.value, clientId:f.clientId.value, amount:f.amount.value};
+    fetch('api.php?action=add_deal', {method:'POST', body: JSON.stringify(data)})
+        .then(() => { f.reset(); fetchDeals(); });
+}
+
+function fetchTasks() {
+    fetch('api.php?action=get_tasks')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('tasks-table');
+            if (!tbody) return;
+            tbody.innerHTML = data.length ? data.map(t => `<tr><td>${t.id}</td><td>${t.title}</td><td>${t.description}</td><td>${t.status}</td></tr>`).join('') : '<tr><td colspan="4">Нет данных</td></tr>';
+        });
+}
+function submitTask(e) {
+    e.preventDefault();
+    const f = e.target;
+    const data = {title:f.title.value, description:f.description.value};
+    fetch('api.php?action=add_task', {method:'POST', body: JSON.stringify(data)})
+        .then(() => { f.reset(); fetchTasks(); });
+}
+</script>
+</body>
+</html>
