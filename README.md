@@ -9,7 +9,13 @@
    ```bash
    php -S localhost:8000
    ```
-3. Откройте `http://localhost:8000/index.html` в браузере.
+   Затем откройте `http://localhost:8000/index.html` в браузере.
+
+   **Если PHP недоступен**, запустите Node‑сервер:
+   ```bash
+   node server.js
+   ```
+   Страница будет доступна по тому же адресу `http://localhost:8000/index.html`.
 
 ## Структура проекта
 - `index.html` – интерфейс CRM. При выборе разделов загружаются JS‑модули из каталога `modules/`.
