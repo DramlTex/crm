@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>CRM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        header {
+            background-color: #2b5797;
+            padding: 1rem;
+            color: white;
+            text-align: center;
+        }
+
+        nav {
+            width: 200px;
+            background-color: #f1f1f1;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        #main-content {
+            margin-left: 220px;
+            padding: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #0078d7;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #005a9e;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>CRM Demo</h1>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#" onclick="navigateTo('clients')">Клиенты</a></li>
+            <li><a href="#" onclick="navigateTo('deals')">Сделки</a></li>
+            <li><a href="#" onclick="navigateTo('reports')">Отчёты</a></li>
+        </ul>
+    </nav>
+
+    <div id="main-content">
+        <div id="content-area">
+            <h2>Добро пожаловать в CRM Demo!</h2>
+            <p>Здесь будет отображаться содержимое в зависимости от выбранного раздела.</p>
+        </div>
+    </div>
+
+    <script>
+        function navigateTo(section) {
+            const contentArea = document.getElementById('content-area');
+            switch (section) {
+                case 'clients':
+                    contentArea.innerHTML = `
+                        <h2>Список клиентов</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID<\/th>
+                                    <th>Имя<\/th>
+                                    <th>Компания<\/th>
+                                    <th>Телефон<\/th>
+                                <\/tr>
+                            <\/thead>
+                            <tbody id="clients-table-body">
+                                <tr><td colspan="4">Загрузка...<\/td><\/tr>
+                            <\/tbody>
+                        <\/table>
+                        <button class="btn" onclick="fetchClients()">Загрузить клиентов<\/button>
+                    `;
+                    break;
+                case 'deals':
+                    contentArea.innerHTML = `
+                        <h2>Сделки</h2>
+                        <p>Тут будет список сделок<\/p>
+                    `;
+                    break;
+                case 'reports':
+                    contentArea.innerHTML = `
+                        <h2>Отчёты</h2>
+                        <p>Статистика, диаграммы и т.д.<\/p>
+                    `;
+                    break;
+                default:
+                    contentArea.innerHTML = `
+                        <h2>Добро пожаловать в CRM Demo!<\/h2>
+                        <p>Выберите раздел в меню.<\/p>
+                    `;
+            }
+        }
+
+        function fetchClients() {
+            fetch('api.php?action=get_clients')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('clients-table-body');
+                    if (!tableBody) return;
+                    if (data.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="4">Нет данных<\/td><\/tr>';
+                    } else {
+                        let rows = '';
+                        data.forEach(client => {
+                            rows += `
+                                <tr>
+                                    <td>${client.id}<\/td>
+                                    <td>${client.name}<\/td>
+                                    <td>${client.company}<\/td>
+                                    <td>${client.phone}<\/td>
+                                <\/tr>
+                            `;
+                        });
+                        tableBody.innerHTML = rows;
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке клиентов:', error);
+                });
+        }
+    </script>
+</body>
+</html>
