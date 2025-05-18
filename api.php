@@ -30,7 +30,7 @@ $action = $_GET['action'] ?? null;
 switch ($action) {
     case 'get_clients':
         echo json_encode($database['clients'], JSON_UNESCAPED_UNICODE);
-        break;
+        exit;
     case 'add_client':
         $data = json_decode(file_get_contents('php://input'), true);
         $new = [
