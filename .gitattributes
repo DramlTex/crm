@@ -1,0 +1,6 @@
+CHANGELOG.md merge=union
+changelog/fragments/* merge=union
+# Автоматически сливаем данные из файла-хранилища
+# Обратите внимание: database.json не хранится в репозитории, но правило добавлено
+# на случай, если он появится
+database.json merge=union
