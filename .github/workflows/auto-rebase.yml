@@ -1,7 +1,8 @@
-# .github/workflows/auto-rebase.yml  (должен быть уже в main!!)
+# .github/workflows/auto-rebase.yml
 name: Auto-rebase Codex PR
+
 on:
-  pull_request_target:
+  pull_request_target:      # нужны права репозитория
     branches: [main]
     types: [opened, synchronize, labeled]
 
@@ -11,57 +12,18 @@ jobs:
         contains(join(github.event.pull_request.labels.*.name, ','), 'codex')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write        # нужно для force-push
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.CUSTOM_GH_TOKEN }}
+          token: ${{ secrets.CUSTOM_GH_TOKEN }}  # PAT c contents:write, workflow
+          ref:  ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-
-      - name: Setup git identity
-        run: |
-          git config user.name "codex-bot"
-          git config user.email "bot@example.com"
-
-      - name: Register merge drivers
-        run: |
-          git config --global merge.keep-bot.driver "bash -c 'cp %B %A'"
-          {
-            echo 'README.md merge=union'
-            echo 'index.html merge=keep-bot'
-            echo 'assets/common.js merge=keep-bot'
-          } >> .gitattributes
-          git add .gitattributes
-          git commit -m 'ci: add merge drivers' || true
 
       - name: Rebase onto main
-        uses: cirrus-actions/rebase@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
-  resolve-conflicts:
-    needs: rebase
-    if: cancelled() || failure()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+        uses: peter-evans/rebase@v3
         with:
-          token: ${{ secrets.CUSTOM_GH_TOKEN }}
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-      - name: Fix merge conflicts
-        run: |
-          git config user.name "codex-bot"
-          git config user.email "bot@example.com"
-          git diff --name-only --diff-filter=U | while read f; do
-            case "$f" in
-              *.md) git checkout --theirs "$f" ;;
-              *.html|*.php|*.js) git checkout --ours "$f" ;;
-            esac
-          done
-          git add -u
-          git commit -m "bot: auto-fix merge conflicts" || true
-      - name: Retry manual rebase
-        run: |
-          git fetch origin main
-          git rebase origin/main -X ours || true
-          git push --force-with-lease
+          base: ${{ github.event.pull_request.base.ref }}   # чаще всего 'main'
+          rebase-options: -Xtheirs                         # «бери изменения из PR»
+
