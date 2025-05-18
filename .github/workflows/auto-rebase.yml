@@ -18,6 +18,11 @@ jobs:
           token: ${{ secrets.CUSTOM_GH_TOKEN }}
           fetch-depth: 0
 
+      - name: Setup git identity
+        run: |
+          git config user.name "codex-bot"
+          git config user.email "bot@example.com"
+
       - name: Register merge drivers
         run: |
           git config --global merge.keep-bot.driver "bash -c 'cp %B %A'"
@@ -33,8 +38,7 @@ jobs:
         uses: cirrus-actions/rebase@v3
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
-
-  resolve-doc-conflicts:
+  resolve-conflicts:
     needs: rebase
     if: cancelled() || failure()
     runs-on: ubuntu-latest
@@ -43,15 +47,21 @@ jobs:
         with:
           token: ${{ secrets.CUSTOM_GH_TOKEN }}
           ref: ${{ github.head_ref }}
-      - name: Auto-resolve docs
+          fetch-depth: 0
+      - name: Fix merge conflicts
         run: |
-          git diff --name-only --diff-filter=U |
-          grep -E '(^README\.md$|\.html$)' |
-          xargs -I{} git checkout --theirs {}
+          git config user.name "codex-bot"
+          git config user.email "bot@example.com"
+          git diff --name-only --diff-filter=U | while read f; do
+            case "$f" in
+              *.md) git checkout --theirs "$f" ;;
+              *.html|*.php|*.js) git checkout --ours "$f" ;;
+            esac
+          done
           git add -u
-          git commit -m "bot: auto-resolve doc conflicts" || true
-          git push
-      - name: Retry rebase
-        uses: cirrus-actions/rebase@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+          git commit -m "bot: auto-fix merge conflicts" || true
+      - name: Retry manual rebase
+        run: |
+          git fetch origin main
+          git rebase origin/main -X ours || true
+          git push --force-with-lease
