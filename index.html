@@ -96,6 +96,8 @@
         <a href="#" id="nav-tasks" onclick="navigateTo('tasks')">Задачи</a>
         <a href="#" id="nav-docs" onclick="navigateTo('documents')">Документы</a>
         <a href="#" id="nav-knowledge" onclick="navigateTo('knowledge')">База знаний</a>
+        <a href="#" id="nav-chat" onclick="navigateTo('chat')">Чат</a>
+        <a href="#" id="nav-integrations" onclick="navigateTo('integrations')">Интеграции</a>
         <a href="#" id="nav-stages" onclick="navigateTo('stages')">Стадии</a>
         <a href="#" id="nav-settings" onclick="navigateTo('settings')">Настройки</a>
     </nav>
@@ -202,6 +204,36 @@
                     </div>
                 `;
                 loadArticles();
+            } else if (section === 'chat') {
+                content.innerHTML = `
+                    <div class="section">
+                        <h2>Чат сотрудников</h2>
+                        <ul id="chat-list">Загрузка...</ul>
+                    </div>
+                    <div class="section">
+                        <h3>Новое сообщение</h3>
+                        <div class="form-row"><label>Текст<input id="chat-text"></label></div>
+                        <button class="btn" onclick="addMessage()">Отправить</button>
+                    </div>
+                `;
+                loadMessages();
+            } else if (section === 'integrations') {
+                content.innerHTML = `
+                    <div class="section">
+                        <h2>Интеграции</h2>
+                        <table>
+                            <thead><tr><th>ID</th><th>Название</th><th>URL</th><th></th></tr></thead>
+                            <tbody id="int-table"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="section">
+                        <h3>Добавить интеграцию</h3>
+                        <div class="form-row"><label>Название<input id="int-name"></label></div>
+                        <div class="form-row"><label>URL<input id="int-url"></label></div>
+                        <button class="btn" onclick="addIntegration()">Сохранить</button>
+                    </div>
+                `;
+                loadIntegrations();
             } else if (section === 'stages') {
                 content.innerHTML = `
                     <div class="section">
@@ -225,6 +257,8 @@
                         <label><input type="checkbox" id="set-menu-tasks"> Задачи</label><br>
                         <label><input type="checkbox" id="set-menu-docs"> Документы</label><br>
                         <label><input type="checkbox" id="set-menu-knowledge"> База знаний</label><br>
+                        <label><input type="checkbox" id="set-menu-chat"> Чат</label><br>
+                        <label><input type="checkbox" id="set-menu-integrations"> Интеграции</label><br>
                         <button class="btn" onclick="saveSettings()">Сохранить</button>
                     </div>
                 `;
@@ -295,6 +329,31 @@
             request('add_article', 'POST', body).then(loadArticles);
         }
 
+        function loadMessages() {
+            request('get_messages').then(data => {
+                const ul = document.getElementById('chat-list');
+                ul.innerHTML = data.length ? data.map(m => `<li>${m.user}: ${m.text}</li>`).join('') : '<li>Нет сообщений</li>';
+            });
+        }
+        function addMessage() {
+            const body = { text: document.getElementById('chat-text').value };
+            request('add_message', 'POST', body).then(() => { document.getElementById('chat-text').value=''; loadMessages(); });
+        }
+
+        function loadIntegrations() {
+            request('get_integrations').then(data => {
+                const tbody = document.getElementById('int-table');
+                tbody.innerHTML = data.length ? data.map(i => `<tr><td>${i.id}</td><td>${i.name}</td><td>${i.url}</td><td><button onclick="testIntegration(${i.id})">Тест</button></td></tr>`).join('') : '<tr><td colspan="4">Нет данных</td></tr>';
+            });
+        }
+        function addIntegration() {
+            const body = { name: document.getElementById('int-name').value, url: document.getElementById('int-url').value };
+            request('add_integration', 'POST', body).then(loadIntegrations);
+        }
+        function testIntegration(id) {
+            request('call_integration', 'POST', { id }).then(() => alert('Отправлено'));
+        }
+
         function loadStages() {
             request('get_stages').then(data => {
                 const ul = document.getElementById('stages-list');
@@ -306,7 +365,7 @@
             request('add_stage', 'POST', body).then(loadStages);
         }
 
-        let settings = { menu: { clients:true, deals:true, tasks:true, documents:false, knowledge:false } };
+        let settings = { menu: { clients:true, deals:true, tasks:true, documents:false, knowledge:false, chat:false, integrations:false } };
         function applySettings() {
             request('get_settings').then(s => {
                 Object.assign(settings.menu, s.menu || {});
@@ -315,6 +374,8 @@
                 document.getElementById('nav-tasks').style.display = settings.menu.tasks ? 'block' : 'none';
                 document.getElementById('nav-docs').style.display = settings.menu.documents ? 'block' : 'none';
                 document.getElementById('nav-knowledge').style.display = settings.menu.knowledge ? 'block' : 'none';
+                document.getElementById('nav-chat').style.display = settings.menu.chat ? 'block' : 'none';
+                document.getElementById('nav-integrations').style.display = settings.menu.integrations ? 'block' : 'none';
             });
         }
         function fillSettings() {
@@ -323,6 +384,8 @@
             document.getElementById('set-menu-tasks').checked = settings.menu.tasks;
             document.getElementById('set-menu-docs').checked = settings.menu.documents;
             document.getElementById('set-menu-knowledge').checked = settings.menu.knowledge;
+            document.getElementById('set-menu-chat').checked = settings.menu.chat;
+            document.getElementById('set-menu-integrations').checked = settings.menu.integrations;
         }
         function saveSettings() {
             const data = {
@@ -331,7 +394,9 @@
                     deals: document.getElementById('set-menu-deals').checked,
                     tasks: document.getElementById('set-menu-tasks').checked,
                     documents: document.getElementById('set-menu-docs').checked,
-                    knowledge: document.getElementById('set-menu-knowledge').checked
+                    knowledge: document.getElementById('set-menu-knowledge').checked,
+                    chat: document.getElementById('set-menu-chat').checked,
+                    integrations: document.getElementById('set-menu-integrations').checked
                 }
             };
             request('update_settings', 'POST', data).then(() => { settings = data; applySettings(); });
