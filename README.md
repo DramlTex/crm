@@ -12,35 +12,28 @@
 3. Откройте `http://localhost:8000/index.html` в браузере.
 
 ## Структура проекта
-- `index.html` – интерфейс CRM с разделами "Клиенты", "Сделки", "Задачи", "Документы", "База знаний", "Чат" и "Интеграции".
-- `api.php` – API для чтения и записи данных в `database.json`.
-- `database.json` – файл‑хранилище (создаётся автоматически).
+- `index.html` – интерфейс CRM. При выборе разделов загружаются JS‑модули из каталога `modules/`.
+- `modules/` – подпапки с кодом каждого раздела (`clients`, `deals`, `tasks` и т.д.).
+- `api/index.php` – единая точка входа API, которая подключает PHP‑модули из `modules/`.
+- `db.php` – функции загрузки и сохранения `database.json` (создаётся автоматически).
 
 ## API
-Доступные действия:
-- `get_clients`, `add_client`
-- `get_deals`, `add_deal`
-- `get_tasks`, `add_task`
-- `get_documents`, `add_document`
-- `get_articles`, `add_article`
-- `get_messages`, `add_message`
-- `get_integrations`, `add_integration`, `call_integration`
-- `get_settings`, `update_settings`
-- `get_stages`, `add_stage`
-- `export_data`
+Доступные действия для каждого раздела аналогичны прежним. Запросы выполняются по адресу:
+`api/index.php?section=<module>&action=<action>`.
+Пример: `section=clients&action=get_clients`.
 
 `export_data` позволяет скачать текущий `database.json` целиком.
 
-Все запросы выполняются через `api.php?action=...`. Для добавления сущностей используйте POST‑запрос с JSON‑телом.
+Для добавления сущностей используйте POST‑запрос с JSON‑телом.
 
 ### Пример запроса добавления клиента
 ```bash
 curl -X POST -d '{"name":"Иван","company":"ООО Ромашка","phone":"123456"}' \
-     http://localhost:8000/api.php?action=add_client
+     http://localhost:8000/api/index.php?section=clients&action=add_client
 ```
 
 ## Кастомизация
-Файл `index.html` содержит стили и JavaScript. Интерфейс можно настроить через раздел "Настройки" или изменив код, добавив свои разделы и виджеты.
+Интерфейс строится из модулей в каталоге `modules/`. При необходимости можно добавлять новые разделы и виджеты, подключая их через `index.html`.
 
 ## Автоматические PR и предотвращение конфликтов
 В проекте настроены правила для минимизации конфликтов при слиянии изменений, особенно от автоматических инструментов (Codex, Dependabot и др.). Основные приёмы:
