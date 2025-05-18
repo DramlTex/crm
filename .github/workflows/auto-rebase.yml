@@ -38,7 +38,6 @@ jobs:
         uses: cirrus-actions/rebase@v3
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
-
   resolve-conflicts:
     needs: rebase
     if: cancelled() || failure()
