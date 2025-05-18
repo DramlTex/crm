@@ -5,59 +5,61 @@ $dbFile = __DIR__ . '/database.json';
 if (!file_exists($dbFile)) {
     file_put_contents($dbFile, json_encode([]));
 }
+
 $database = json_decode(file_get_contents($dbFile), true);
+if (!isset($database['clients'])) $database['clients'] = [];
+if (!isset($database['deals']))   $database['deals']   = [];
+if (!isset($database['tasks']))   $database['tasks']   = [];
+
 $action = $_GET['action'] ?? null;
 
 switch ($action) {
     case 'get_clients':
-        $database['clients'] = $database['clients'] ?? [];
         echo json_encode($database['clients'], JSON_UNESCAPED_UNICODE);
         break;
     case 'add_client':
-        $post = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), true);
         $new = [
-            'id' => time(),
-            'name' => $post['name'] ?? 'Безымянный',
-            'company' => $post['company'] ?? '',
-            'phone' => $post['phone'] ?? ''
+            'id'      => time(),
+            'name'    => $data['name'] ?? 'Безымянный',
+            'company' => $data['company'] ?? '',
+            'phone'   => $data['phone'] ?? ''
         ];
         $database['clients'][] = $new;
-        file_put_contents($dbFile, json_encode($database, JSON_UNESCAPED_UNICODE));
-        echo json_encode(['status' => 'success', 'client' => $new], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'get_deals':
-        $database['deals'] = $database['deals'] ?? [];
         echo json_encode($database['deals'], JSON_UNESCAPED_UNICODE);
-        break;
+        exit;
     case 'add_deal':
-        $post = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), true);
         $new = [
-            'id' => time(),
-            'title' => $post['title'] ?? 'Новая сделка',
-            'amount' => $post['amount'] ?? ''
+            'id'        => time(),
+            'title'     => $data['title'] ?? 'Новая сделка',
+            'client_id' => $data['client_id'] ?? '',
+            'amount'    => $data['amount'] ?? 0
         ];
         $database['deals'][] = $new;
-        file_put_contents($dbFile, json_encode($database, JSON_UNESCAPED_UNICODE));
-        echo json_encode(['status' => 'success', 'deal' => $new], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'get_tasks':
-        $database['tasks'] = $database['tasks'] ?? [];
         echo json_encode($database['tasks'], JSON_UNESCAPED_UNICODE);
-        break;
+        exit;
     case 'add_task':
-        $post = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), true);
         $new = [
-            'id' => time(),
-            'title' => $post['title'] ?? 'Задача',
-            'due' => $post['due'] ?? ''
+            'id'      => time(),
+            'title'   => $data['title'] ?? 'Новая задача',
+            'deal_id' => $data['deal_id'] ?? '',
+            'due_date'=> $data['due_date'] ?? ''
         ];
         $database['tasks'][] = $new;
-        file_put_contents($dbFile, json_encode($database, JSON_UNESCAPED_UNICODE));
-        echo json_encode(['status' => 'success', 'task' => $new], JSON_UNESCAPED_UNICODE);
         break;
 
     default:
         echo json_encode(['error' => 'Unknown action'], JSON_UNESCAPED_UNICODE);
+        exit;
 }
+
+file_put_contents($dbFile, json_encode($database, JSON_UNESCAPED_UNICODE));
+echo json_encode(['status' => 'success']);
