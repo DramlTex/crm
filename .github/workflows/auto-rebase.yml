@@ -6,7 +6,7 @@ on:
     types: [opened, synchronize, labeled]
 
 jobs:
-  auto-rebase:
+  rebase:
     if: startsWith(github.event.pull_request.head.ref, 'codex/') ||
         contains(join(github.event.pull_request.labels.*.name, ','), 'codex')
     runs-on: ubuntu-latest
@@ -17,11 +17,6 @@ jobs:
         with:
           token: ${{ secrets.CUSTOM_GH_TOKEN }}
           fetch-depth: 0
-
-      - name: Set git identity
-        run: |
-          git config user.name "codex-bot"
-          git config user.email "bot@example.com"
 
       - name: Register merge drivers
         run: |
@@ -35,22 +30,28 @@ jobs:
           git commit -m 'ci: add merge drivers' || true
 
       - name: Rebase onto main
-        id: rebase
-        run: |
-          git fetch origin main
-          if ! git rebase origin/main -X ours; then
-            echo "conflicted=true" >> $GITHUB_OUTPUT
-          fi
+        uses: cirrus-actions/rebase@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
 
+  resolve-doc-conflicts:
+    needs: rebase
+    if: cancelled() || failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CUSTOM_GH_TOKEN }}
+          ref: ${{ github.head_ref }}
       - name: Auto-resolve docs
-        if: steps.rebase.outputs.conflicted == 'true'
         run: |
-          git diff --name-only --diff-filter=U | \
-            grep -E '(^README\\.md$|\\.html$)' | \
-            xargs -I{} git checkout --theirs {}
+          git diff --name-only --diff-filter=U |
+          grep -E '(^README\.md$|\.html$)' |
+          xargs -I{} git checkout --theirs {}
           git add -u
-          git rebase --continue || git rebase --skip
-
-      - name: Push changes
-        if: success()
-        run: git push --force-with-lease
+          git commit -m "bot: auto-resolve doc conflicts" || true
+          git push
+      - name: Retry rebase
+        uses: cirrus-actions/rebase@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
