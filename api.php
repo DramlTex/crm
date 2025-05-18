@@ -11,9 +11,19 @@ if (!isset($database['clients']))   $database['clients']   = [];
 if (!isset($database['deals']))     $database['deals']     = [];
 if (!isset($database['tasks']))     $database['tasks']     = [];
 if (!isset($database['documents'])) $database['documents'] = [];
-if (!isset($database['settings']))  $database['settings']  = ['menu' => ['clients'=>true,'deals'=>true,'tasks'=>true,'documents'=>false,'knowledge'=>false]];
+if (!isset($database['settings']))  $database['settings']  = ['menu' => [
+    'clients'=>true,
+    'deals'=>true,
+    'tasks'=>true,
+    'documents'=>false,
+    'knowledge'=>false,
+    'chat'=>false,
+    'integrations'=>false
+]];
 if (!isset($database['stages']))    $database['stages']    = ['Новая','В работе','Закрыта'];
 if (!isset($database['articles']))  $database['articles']  = [];
+if (!isset($database['messages']))  $database['messages']  = [];
+if (!isset($database['integrations'])) $database['integrations'] = [];
 
 $action = $_GET['action'] ?? null;
 
@@ -85,6 +95,42 @@ switch ($action) {
         ];
         $database['articles'][] = $new;
         break;
+
+    case 'get_messages':
+        echo json_encode($database['messages'], JSON_UNESCAPED_UNICODE);
+        exit;
+    case 'add_message':
+        $data = json_decode(file_get_contents('php://input'), true);
+        $new = [
+            'id'   => time(),
+            'user' => 'user',
+            'text' => $data['text'] ?? ''
+        ];
+        $database['messages'][] = $new;
+        break;
+
+    case 'get_integrations':
+        echo json_encode($database['integrations'], JSON_UNESCAPED_UNICODE);
+        exit;
+    case 'add_integration':
+        $data = json_decode(file_get_contents('php://input'), true);
+        $new = [
+            'id'   => time(),
+            'name' => $data['name'] ?? 'service',
+            'url'  => $data['url'] ?? ''
+        ];
+        $database['integrations'][] = $new;
+        break;
+    case 'call_integration':
+        $data = json_decode(file_get_contents('php://input'), true);
+        $id = $data['id'] ?? null;
+        $url = null;
+        foreach ($database['integrations'] as $i) {
+            if ($i['id'] == $id) { $url = $i['url']; break; }
+        }
+        if ($url) { @file_get_contents($url); }
+        echo json_encode(['status' => 'called']);
+        exit;
 
     case 'get_settings':
         echo json_encode($database['settings'], JSON_UNESCAPED_UNICODE);
