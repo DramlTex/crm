@@ -1,16 +1,15 @@
-name: Auto-rebase Codex PR
-on:
-  pull_request_target:
-    types: [synchronize, labeled]
-    branches: [main]
-    paths-ignore: ['**.md']
-jobs:
-  rebase:
-    if: github.actor == 'codex/index-html'
+  resolve-doc-conflicts:
+    needs: rebase
+    if: cancelled() || failure()   # rebase завершился конфликтом
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.CUSTOM_GH_TOKEN }}
-      - name: Rebase
-        uses: cirrus-actions/rebase@v3
+        with: { token: ${{ secrets.CUSTOM_GH_TOKEN }}, ref: ${{ github.head_ref }} }
+      - name: Auto-resolve docs
+        run: |
+          git diff --name-only --diff-filter=U |
+          grep -E '(^README\.md$|\.html$)' |
+          xargs -I{} git checkout --theirs {}
+          git add -u
+          git commit -m "bot: auto-resolve doc conflicts" || true
+          git push
