@@ -1,3 +1,7 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -89,6 +93,9 @@
             }
         };
         applySettings();
+        window.addEventListener('load', () => {
+            console.log('Main page loaded');
+        });
     </script>
 </body>
 </html>
