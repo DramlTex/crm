@@ -1,24 +1,28 @@
-# .github/workflows/auto-rebase.yml
-name: Auto-rebase Codex PR
+name: Auto‑accept Codex PR
 
 on:
-  pull_request_target:      # нужны права репозитория
+  pull_request_target:
+    # Запускается для PR, направленных в основную ветку
     branches: [main]
     types: [opened, synchronize, labeled]
 
 jobs:
-  rebase:
-    if: startsWith(github.event.pull_request.head.ref, 'codex/') ||
-        contains(join(github.event.pull_request.labels.*.name, ','), 'codex')
+  codex-auto-merge:
+    # Работа срабатывает только для веток или PR с пометкой Codex
+    if: |
+      startsWith(github.event.pull_request.head.ref, 'codex/') ||
+      contains(join(github.event.pull_request.labels.*.name, ','), 'codex')
     runs-on: ubuntu-latest
     permissions:
-      contents: write        # нужно для force-push
+      contents: write          # требуется для force‑push и слияния
+      pull-requests: write
+
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.CUSTOM_GH_TOKEN }}  # PAT c contents:write, workflow
-          ref:  ${{ github.event.pull_request.head.sha }}
+          token: ${{ secrets.CUSTOM_GH_TOKEN }}  # PAT с contents:write, pull-requests
+          ref:  ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Configure git identity
@@ -26,84 +30,23 @@ jobs:
           git config user.email "codex@example.com"
           git config user.name "Codex Bot"
 
-      - name: Register merge drivers
-        run: |
-          git config --global merge.keep-bot.driver "bash -c 'cp %B %A'"
-          {
-            echo 'README.md merge=union'
-            echo 'index.html merge=keep-bot'
-            echo 'assets/common.js merge=keep-bot'
-          } >> .gitattributes
-          git add .gitattributes
-          git commit -m 'ci: add merge drivers' || true
-
-      - name: Rebase onto main
-        env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+      - name: Rebase onto main, предпочитая изменения Codex
         run: |
           git fetch origin main
-          if ! git rebase -X ours origin/main; then
-            git diff --name-only --diff-filter=U |
-              grep -E '(^README\.md$|\.html$)' |
-              xargs -I{} git checkout --theirs {}
-            git add -u
-            git commit -m "bot: auto-resolve doc conflicts" || true
-            git rebase --continue || true
+          # 1) Пытаемся rebase, оставляя версии из ветки Codex при конфликте (-X theirs)
+          if ! git rebase -X theirs origin/main ; then
+            # 2) Если rebase не удался (редко), откатываемся и делаем merge с приоритетом Codex
+            git rebase --abort || true
+            git merge -X theirs --no-edit origin/main
           fi
+          # Обновляем PR ветку
           git push --force-with-lease
 
-  resolve-doc-conflicts:
-    needs: rebase
-    if: cancelled() || failure()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Merge pull request
+        uses: peter-evans/merge-pull-request@v2
         with:
           token: ${{ secrets.CUSTOM_GH_TOKEN }}
-          ref: ${{ github.head_ref }}
-      - name: Auto-resolve docs
-        run: |
-          git diff --name-only --diff-filter=U |
-          grep -E '(^README\.md$|\.html$)' |
-          xargs -I{} git checkout --theirs {}
-          git add -u
-          git commit -m "bot: auto-resolve doc conflicts" || true
-          git push
-      - name: Retry rebase
-        uses: cirrus-actions/rebase@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
-
-  resolve-doc-conflicts:
-    needs: rebase
-    if: cancelled() || failure()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.CUSTOM_GH_TOKEN }}
-          ref: ${{ github.head_ref }}
-      - name: Auto-resolve docs
-        run: |
-          git diff --name-only --diff-filter=U |
-          grep -E '(^README\.md$|\.html$)' |
-          xargs -I{} git checkout --theirs {}
-          git add -u
-          git commit -m "bot: auto-resolve doc conflicts" || true
-          git push
-      - name: Retry rebase
-        uses: cirrus-actions/rebase@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
-  auto-merge:
-    needs: [rebase, resolve-doc-conflicts]
-    if: >-
-      (needs.rebase.result == 'success' || needs.resolve-doc-conflicts.result == 'success') &&
-      contains(join(github.event.pull_request.labels.*.name, ','), 'auto-merge')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Enable auto merge
-        uses: peter-evans/enable-pull-request-automerge@v2
-        with:
-          token: ${{ secrets.CUSTOM_GH_TOKEN }}
-          merge-method: squash
+          merge_method: squash   # или merge/fast-forward — на ваше усмотрение
+          delete_branch: true
+          commit_title: "codex: auto‑merged by workflow"
+          commit_message: "Automatically accepting all changes from Codex."
