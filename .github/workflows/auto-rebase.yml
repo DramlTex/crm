@@ -1,7 +1,8 @@
-# .github/workflows/auto-rebase.yml  (должен быть уже в main!!)
+# .github/workflows/auto-rebase.yml
 name: Auto-rebase Codex PR
+
 on:
-  pull_request_target:
+  pull_request_target:      # нужны права репозитория
     branches: [main]
     types: [opened, synchronize, labeled]
 
@@ -11,12 +12,19 @@ jobs:
         contains(join(github.event.pull_request.labels.*.name, ','), 'codex')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write        # нужно для force-push
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.CUSTOM_GH_TOKEN }}
+          token: ${{ secrets.CUSTOM_GH_TOKEN }}  # PAT c contents:write, workflow
+          ref:  ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.email "codex@example.com"
+          git config user.name "Codex Bot"
 
       - name: Register merge drivers
         run: |
@@ -30,6 +38,63 @@ jobs:
           git commit -m 'ci: add merge drivers' || true
 
       - name: Rebase onto main
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+        run: |
+          git fetch origin main
+          if ! git rebase -X ours origin/main; then
+            git diff --name-only --diff-filter=U |
+              grep -E '(^README\.md$|\.html$)' |
+              xargs -I{} git checkout --theirs {}
+            git add -u
+            git commit -m "bot: auto-resolve doc conflicts" || true
+            git rebase --continue || true
+          fi
+          git push --force-with-lease
+
+  resolve-doc-conflicts:
+    needs: rebase
+    if: cancelled() || failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CUSTOM_GH_TOKEN }}
+          ref: ${{ github.head_ref }}
+      - name: Auto-resolve docs
+        run: |
+          git diff --name-only --diff-filter=U |
+          grep -E '(^README\.md$|\.html$)' |
+          xargs -I{} git checkout --theirs {}
+          git add -u
+          git commit -m "bot: auto-resolve doc conflicts" || true
+          git push
+      - name: Retry rebase
+        uses: cirrus-actions/rebase@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+
+  resolve-doc-conflicts:
+    needs: rebase
+    if: cancelled() || failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CUSTOM_GH_TOKEN }}
+          ref: ${{ github.head_ref }}
+      - name: Auto-resolve docs
+        run: |
+          git config user.email "codex@example.com"
+          git config user.name "Codex Bot"
+          git diff --name-only --diff-filter=U |
+          grep -E '(README\.md$|\.html$|\.js$|\.php$)' |
+          xargs -I{} git checkout --ours {}
+          git add -u
+          git commit -m "bot: auto-resolve doc conflicts" || true
+          git rebase -X ours origin/main || true
+          git push --force-with-lease
+      - name: Retry rebase
         uses: cirrus-actions/rebase@v3
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
