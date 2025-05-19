@@ -31,3 +31,39 @@ jobs:
 
       - name: Rebase onto main
         uses: cirrus-actions/rebase@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+
+  resolve-doc-conflicts:
+    needs: rebase
+    if: cancelled() || failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CUSTOM_GH_TOKEN }}
+          ref: ${{ github.head_ref }}
+      - name: Auto-resolve docs
+        run: |
+          git diff --name-only --diff-filter=U |
+          grep -E '(^README\.md$|\.html$)' |
+          xargs -I{} git checkout --theirs {}
+          git add -u
+          git commit -m "bot: auto-resolve doc conflicts" || true
+          git push
+      - name: Retry rebase
+        uses: cirrus-actions/rebase@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+  auto-merge:
+    needs: [rebase, resolve-doc-conflicts]
+    if: >-
+      (needs.rebase.result == 'success' || needs.resolve-doc-conflicts.result == 'success') &&
+      contains(join(github.event.pull_request.labels.*.name, ','), 'auto-merge')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto merge
+        uses: peter-evans/enable-pull-request-automerge@v2
+        with:
+          token: ${{ secrets.CUSTOM_GH_TOKEN }}
+          merge-method: squash
